@@ -2,25 +2,23 @@ package one.tunkshif.dictlet.dicts
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
-import one.tunkshif.dictlet.model.Definition
-import one.tunkshif.dictlet.model.Example
-import one.tunkshif.dictlet.model.WordResult
+import one.tunkshif.dictlet.model.*
 import org.jsoup.Jsoup
 import java.lang.NullPointerException
 import java.util.*
 
 object SpanishDict {
-    private const val name: String = "SpanishDict"
-    private const val apiUrl: String = "https://www.spanishdict.com/translate/"
-    private const val audioApiUrl: String = "https://api.frdic.com/api/v2/speech/speakweb?langid=es&txt=QYN"
+    const val name: String = "SpanishDict"
+    private const val wordQueryApiUrl = "https://www.spanishdict.com/translate/"
+    private const val conjugationApiUrl = "https://www.spanishdict.com/conjugate/"
+    private const val audioApiUrl = "https://api.frdic.com/api/v2/speech/speakweb?langid=es&txt=QYN"
+
+    private val mapper = ObjectMapper()
 
     private const val NO_TRANSLATION_TEXT = "no direct translation"
 
-    /**
-     * @return raw json data string extracted from the HTML script tag
-     */
-    private fun getJsonDataFromHtml(query: String): String {
-        val doc = Jsoup.connect(apiUrl + query).get()
+    private fun getJsonDataFromHtml(url: String): String {
+        val doc = Jsoup.connect(url).get()
         return doc.select("script").filter {
             it.data().contains("window.SD_COMPONENT_DATA")
         }.takeIf { it.isNotEmpty() }
@@ -54,8 +52,7 @@ object SpanishDict {
     }
 
     fun getWordResult(query: String, isPosAbbr: Boolean = false, showGender: Boolean = true): WordResult {
-        val mapper = ObjectMapper()
-        val neodict = mapper.readTree(getJsonDataFromHtml(query))
+        val neodict = mapper.readTree(getJsonDataFromHtml(wordQueryApiUrl + query))
             .get("sdDictionaryResultsProps")?.get("entry")?.get("neodict")
             ?: throw NullPointerException("Cannot find the word $query in $name")
 
@@ -92,6 +89,25 @@ object SpanishDict {
             query = query,
             audioUrl = getAudioUrl(query),
             definitions = definitions
+        )
+    }
+
+    fun getConjugationList(query: String): Conjugation {
+        val conjugation = mapper.readTree(getJsonDataFromHtml(conjugationApiUrl + query))
+            .get("verb") ?: throw NullPointerException("Cannot find conjugation for $query in $name")
+        val paradigms = mutableListOf<Tense>()
+        conjugation.get("paradigms").fields().forEach {
+            Tense(
+                tense = it.key,
+                wordList = mapper.readerFor(object : TypeReference<MutableList<Word>>() {}).readValue(it.value)
+            ) addToList paradigms
+        }
+        return Conjugation(
+            infinitive = conjugation["infinitive"].asText(),
+            presentParticiple = null,
+            pastParticiple = conjugation.get("pastParticiple").get("word").asText(),
+            gerund = conjugation.get("gerund").get("word").asText(),
+            paradigms = paradigms
         )
     }
 
