@@ -3,6 +3,7 @@ package one.tunkshif.dictlet
 import io.javalin.Javalin
 import io.javalin.apibuilder.ApiBuilder.*
 import one.tunkshif.dictlet.dicts.SpanishDict
+import one.tunkshif.dictlet.dicts.YoudaoCollins
 import one.tunkshif.dictlet.model.RequestResult
 import java.net.SocketTimeoutException
 
@@ -54,7 +55,6 @@ fun main() {
                 )
             )
         }
-
     }.start(getPort())
 
     app.routes {
@@ -72,6 +72,15 @@ fun main() {
             ctx.json(RequestResult(status = ctx.status(), result = result))
         }
 
+        get("/youdao-collins/query/:query") { ctx ->
+            val query = ctx.pathParam("query")
+            val accentType = ctx.queryParam<Int>("accentType", "2")
+                .check({ it in 1..2 }, "Available Options: 1 for PR and 2 for GA")
+                .takeUnless { it.hasError() }?.get() ?: 2
+            val isPosAbbr = ctx.queryParam<Boolean>("isPosAbbr", "true").get()
+            val result = YoudaoCollins.getWordResult(query, accentType = accentType, isPosAbbr = isPosAbbr)
+            ctx.json(RequestResult(status = ctx.status(), result = result))
+        }
     }
 }
 
