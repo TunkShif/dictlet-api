@@ -19,7 +19,7 @@ object SpanishDict {
     /**
      * @return raw json data string extracted from the HTML script tag
      */
-    private fun handleHtml(query: String): String {
+    private fun getJsonDataFromHtml(query: String): String {
         val doc = Jsoup.connect(apiUrl + query).get()
         return doc.select("script").filter {
             it.data().contains("window.SD_COMPONENT_DATA")
@@ -33,6 +33,7 @@ object SpanishDict {
         audioApiUrl + Base64.getEncoder().encodeToString(query.toByteArray())
 
     private fun getGender(genderCode: String, isPosAbbr: Boolean): String {
+        // TODO: need a better way to deal with gender
         return if (isPosAbbr) {
             when (genderCode) {
                 "F", "FX" -> "f"
@@ -54,7 +55,7 @@ object SpanishDict {
 
     fun getWordResult(query: String, isPosAbbr: Boolean = false, showGender: Boolean = true): WordResult {
         val mapper = ObjectMapper()
-        val neodict = mapper.readTree(handleHtml(query))
+        val neodict = mapper.readTree(getJsonDataFromHtml(query))
             .get("sdDictionaryResultsProps")?.get("entry")?.get("neodict")
             ?: throw NullPointerException("Cannot find the word $query in $name")
 
