@@ -35,9 +35,9 @@ fun main() {
     app.routes {
         get("/spanishdict/:query") { ctx ->
             val query = ctx.pathParam("query")
-            val isAbbr = ctx.queryParam<Boolean>("isAbbr", "true").get()
+            val isPosAbbr = ctx.queryParam<Boolean>("isPosAbbr", "true").get()
             val showGender = ctx.queryParam<Boolean>("showGender", "true").get()
-            val result = SpanishDict.getWordResult(query, isAbbr, showGender)
+            val result = SpanishDict.getWordResult(query, isPosAbbr, showGender)
             ctx.json(RequestResult(result = result))
         }
     }
