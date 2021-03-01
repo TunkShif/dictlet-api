@@ -10,7 +10,10 @@ import java.net.SocketTimeoutException
 fun main() {
     val app = Javalin.create().apply {
 
-        config.addStaticFiles("static/")
+        config.apply {
+            enableCorsForAllOrigins()
+            addStaticFiles("static/")
+        }
 
         exception(NullPointerException::class.java) { e, ctx ->
             ctx.json(

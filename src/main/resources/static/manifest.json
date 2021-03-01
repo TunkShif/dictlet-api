@@ -1,0 +1,15 @@
+{
+  "short_name": "AnkiEstrella",
+  "name": "Anki Estrella Web Helper",
+  "description": "Anki Estrella Web Helper",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "./helper.html",
+  "display": "standalone",
+  "orientation": "portrait"
+}
