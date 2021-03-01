@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anki Estrella Web</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css">
+    <script src="https://kit.fontawesome.com/74d7680cfa.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+</head>
+<body>
+    <section id="app" class="section">
+        <div id="search-bar" class="container mb-4">
+            <div class="field has-addons has-addons-centered">
+                <p class="control">
+                    <span class="select">
+                        <select>
+                            <option>ES</option>
+                            <option>EN</option>
+                        </select>
+                    </span>
+                </p>
+                <p class="control">
+                    <input type="text" v-model="query" class="input" placeholder="Input a word" required>
+                </p>
+                <p class="control">
+                    <button class="button is-primary" @click="fetchResult">
+                        <span class="icon">
+                            <i class="fas fa-search"></i>
+                        </span>
+                    </button>
+                </p>
+            </div>
+        </div>
+
+        <div class="columns" v-if="status === 'success'">
+            <word-card v-for="definition in result.definitions"
+                       :key="definition.sense"
+                       :word="result.word"
+                       :audio="result.audioUrl"
+                       :definition="definition">
+            </word-card>
+        </div>
+
+        <div class="container">
+            <div class="card">
+                <div class="card-content" v-if="status === 'init'">
+                    <p class="title">{{ message.init.title }}</p>
+                    <p class="subtitle">{{ message.init.message }}</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-content" v-if="status === 'failed'">
+                    <p class="title">{{ message.failed.title }}</p>
+                    <p class="subtitle">{{ message.failed.message }}</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <script>
+        async function checkAnkiConnection() {
+            let req = {
+                action: 'version',
+                version: 6
+            }
+            const result = await fetch("http://localhost:8765", {
+                method: 'post',
+                body: JSON.stringify(req)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    return data.error == null
+                })
+                .catch(error => {
+                    console.log(error)
+                    return false
+                })
+            return result
+        }
+        Vue.component('word-card', {
+            props: ['word', 'audio', 'definition'],
+            methods: {
+                addToAnki: function () {
+                    checkAnkiConnection().then(result => {
+                        if (!result) {
+                            alert("AnkiConnection not available!")
+                        } else {
+                            let req = {
+                                action: 'addNote',
+                                version: 6,
+                                params: {
+                                    note: {
+                                        deckName: 'Spanish',
+                                        modelName: 'Es-Vocabulary',
+                                        fields: {
+                                            'WORD': this.$props.word,
+                                            'POS': this.$props.definition.pos,
+                                            'DEFINITION': this.$props.definition.sense,
+                                            'SENTENCE-ES': this.$props.definition.examples[0].example,
+                                            'SENTENCE-EN': this.$props.definition.examples[0].exampleTranslation,
+                                            'AUDIO': this.$props.audio
+                                        }
+                                    }
+                                }
+                            }
+                            fetch("http://localhost:8765", {
+                                method: 'post',
+                                body: JSON.stringify(req)
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.error != null) {
+                                    console.log(data.error)
+                                    alert("AnkiConnection failed!")
+                                }
+                            })
+                            .catch(error => {
+                                console.log(error)
+                                alert("AnkiConnection failed!")
+                            })
+                        }
+                    })
+                }
+            },
+            template: '<div class="column">\n' +
+                '                    <div class="container is-flex is-justify-content-center py-6 px-2">\n' +
+                '                        <div id="main" class="card" style="width: 100%;">\n' +
+                '                            <div class="card-content">\n' +
+                '                                <nav class="level is-mobile">\n' +
+                '                                    <div class="level-left">\n' +
+                '                                        <div class="level-item">\n' +
+                '                                            <p class="title">\n' +
+                '                                                <span id="word">{{ word }}</span>\n' +
+                '                                            </p>\n' +
+                '                                        </div>\n' +
+                '                                    </div>\n' +
+                '                                    <div class="level-right">\n' +
+                '                                        <div class="level-item">\n' +
+                '                                            <button id="play-button" class="button is-small is-info is-inverted">\n' +
+                '                                            <span class="icon">\n' +
+                '                                                <i class="fa fa-play-circle fa-2x">\n' +
+                '                                                    <audio id="audio" :src="audio" onclick="document.getElementById(\'audio\').play();" autoplay></audio>\n' +
+                '                                                </i>\n' +
+                '                                            </span>\n' +
+                '                                            </button>\n' +
+                '                                        </div>\n' +
+                '                                    </div>\n' +
+                '                                </nav>\n' +
+                '                                <p class="subtitle">\n' +
+                '                                    <span id="part-of-speech" class="tag is-info is-rounded">{{ definition.pos }}</span>\n' +
+                '                                    <span id="definition">{{ definition.sense }}</span>\n' +
+                '                                </p>\n' +
+                '                                <p class="content">\n' +
+                '                                    <span id="sentence-es">{{ definition.examples[0].example }}</span>\n' +
+                '                                <hr>\n' +
+                '                                <span id="sentence-en">{{ definition.examples[0].exampleTranslation }}</span>\n' +
+                '                                </p>\n' +
+                '                            </div>\n' +
+                '                            <div class="card-footer">\n' +
+                '                                <a href="#" class="card-footer-item" @click="addToAnki">Add to Anki</a>\n' +
+                '                            </div>\n' +
+                '                        </div>\n' +
+                '                    </div>\n' +
+                '                </div>'
+        })
+
+        const app = new Vue({
+            el: "#app",
+            data: {
+                status: "init",
+                message: {
+                    init: {
+                        title: "Not Searched Yet",
+                        message: "Nothing here."
+                    },
+                    failed: {
+                        title: "Request Failed",
+                        message: ""
+                    }
+                },
+                query: "",
+                result: null
+            },
+            methods: {
+                fetchResult: function () {
+                    fetch("/spanishdict/query/" + this.query)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data["success"]) {
+                            this.status = "failed"
+                            this.message.failed.message = data["message"]
+                            this.result = null
+                        } else {
+                            this.status = "success"
+                            this.result = data["result"]
+                        }
+                    })
+                    .catch(error => {
+                        this.status = "failed"
+                        this.message.failed.message = error
+                        this.result = null
+                        console.log(error)
+                    })
+                }
+            }
+        });
+    </script>
+</body>
+</html>
