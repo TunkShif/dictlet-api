@@ -102,6 +102,9 @@
                                             'SENTENCE-ES': this.$props.definition.examples[0].example,
                                             'SENTENCE-EN': this.$props.definition.examples[0].exampleTranslation,
                                             'AUDIO': this.$props.audio
+                                        },
+                                        options: {
+                                            allowDuplicate: true
                                         }
                                     }
                                 }
@@ -110,17 +113,17 @@
                                 method: 'post',
                                 body: JSON.stringify(req)
                             })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.error != null) {
-                                    console.log(data.error)
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.error != null) {
+                                        console.log(data.error)
+                                        alert("AnkiConnection failed!")
+                                    }
+                                })
+                                .catch(error => {
+                                    console.log(error)
                                     alert("AnkiConnection failed!")
-                                }
-                            })
-                            .catch(error => {
-                                console.log(error)
-                                alert("AnkiConnection failed!")
-                            })
+                                })
                         }
                     })
                 }
