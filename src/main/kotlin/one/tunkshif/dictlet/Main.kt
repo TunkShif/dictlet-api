@@ -2,19 +2,18 @@ package one.tunkshif.dictlet
 
 import io.javalin.Javalin
 import io.javalin.apibuilder.ApiBuilder.*
+import one.tunkshif.dictlet.dicts.SesliSozluk
 import one.tunkshif.dictlet.dicts.SpanishDict
 import one.tunkshif.dictlet.dicts.YoudaoCollins
 import one.tunkshif.dictlet.model.RequestResult
 import java.net.SocketTimeoutException
 
 fun main() {
-    val app = Javalin.create().apply {
-
-        config.apply {
-            enableCorsForAllOrigins()
-            addStaticFiles("static/")
-        }
-
+    val app = Javalin.create {
+        it.enableCorsForAllOrigins()
+        it.enableDevLogging()
+        it.addStaticFiles("static/")
+    }.apply {
         exception(NullPointerException::class.java) { e, ctx ->
             ctx.json(
                 RequestResult(
@@ -84,10 +83,14 @@ fun main() {
             val result = YoudaoCollins.getWordResult(query, accentType = accentType, isPosAbbr = isPosAbbr)
             ctx.json(RequestResult(status = ctx.status(), result = result))
         }
+
+        get("/seslisozluk/query/:query") { ctx ->
+            val query = ctx.pathParam("query")
+            val result = SesliSozluk.getWordResult(query)
+            ctx.json(RequestResult(status = ctx.status(), result = result))
+        }
+
     }
 }
 
-fun getPort(): Int {
-    val port = System.getenv("PORT")
-    return port?.toInt() ?: 9000
-}
+fun getPort() = System.getenv("PORT")?.toInt() ?: 9000

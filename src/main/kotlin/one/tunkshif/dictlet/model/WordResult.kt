@@ -11,10 +11,10 @@ data class WordResult(
 )
 
 data class Definition(
-    val pos: String,
+    val pos: String? = null,
     val sense: String,
     val senseTranslation: String? = null,
-    val examples: MutableList<Example>
+    val examples: MutableList<Example> = mutableListOf()
 ) {
     infix fun addToList(list: MutableList<Definition>) = list.add(this)
 }
